@@ -1,1 +1,0 @@
-wscript.echo "app2 OK !!"

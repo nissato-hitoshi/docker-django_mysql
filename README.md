@@ -43,3 +43,16 @@ $ docker-compose exec app python manage.py runserver 0:8000
 ```
 $ docker-compose exec app python batch/script/python/csv_zisseki_02.py 43 202202
 ```
+
+### git リモートリポジトリの追加
+### 実行前にTeamsのグループに参加しフォルダを同期させておくこと
+### OneDriveのインストールが必要？
+```
+git remote add origin file://"C:\Users\[ユーザー名]\株式会社ジャパンコンピューターサービス\O365_GIT - General\app.git"
+```
+
+### git クローンを実行
+### 
+```
+git clone file://"C:\Users\[ユーザー名]\株式会社ジャパンコンピューターサービス\O365_GIT - General\app.git" .
+```
