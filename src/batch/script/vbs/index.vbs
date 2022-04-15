@@ -1,1 +1,1 @@
-wscript.echo "OK"
+wscript.echo "OK "
