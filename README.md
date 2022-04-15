@@ -56,4 +56,8 @@ git remote add origin file://"C:\Users\[ユーザー名]\株式会社ジャパ�
 ```
 git clone file://"C:\Users\[ユーザー名]\株式会社ジャパンコンピューターサービス\O365_GIT - General\app.git" .
 ```
+
+### リモートリポジトリへ更新
+```
 git push 
+```
