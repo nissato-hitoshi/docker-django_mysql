@@ -1,0 +1,17 @@
+Django==3.2
+uwsgi==2.0.18
+mysqlclient
+autopep8
+# Django用 Bootstrap5 で必要
+django-bootstrap5
+django-bootstrap-icons
+# 拡張認証機能で必要
+django-allauth
+# Rest API 構築に必要
+djangorestframework
+markdown
+django-filter
+# batch 処理で必要
+openpyxl
+pandas
+python-dotenv

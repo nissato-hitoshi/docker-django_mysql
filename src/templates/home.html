@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load django_bootstrap5 %}
+{% load bootstrap_icons %}
+{% load i18n %}
+{% load humanize %}
+
+{% block head_title %}{% trans "Home" %}{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+  <div class="row">
+    <div class="col-6">
+      <h4 class="mb-3 mt-3">
+        <i class="fa-solid fa-table-list"></i> 予算・実績一覧
+      </h4>
+      <table class="table table-hover table-striped table-bordered table-sm small">
+        <thead class="table-light text-center">
+          <tr>
+            <th scope="col">会計期</th>
+            <th scope="col">年月</th>
+            <th scope="col">予算</th>
+            <th scope="col">実績</th>
+            <th scope="col">予実差</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for item in items %}
+          <tr>
+            <td class="text-center">{{ item.accounting_period }}</td>
+            <td class="text-center">{{ item.accounting_month }}</td>
+            <td class="text-end">{{ item.budget_total | intcomma }}</td>
+            <td class="text-end">{{ item.achievement_total | intcomma }}</td>
+            {% if item.diff_total < 0 %}
+            <td class="text-end text-danger">{{ item.diff_total | intcomma }}</td>
+            {% else %}
+            <td class="text-end">{{ item.diff_total | intcomma }}</td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+        </tbody>
+        <tfooter>
+        {% for val in total %}
+          <tr>
+            <td class="text-center">合計</td>
+            <td class="text-center">－</td>
+            <td class="text-end">{{ val.budget_total | intcomma }}</td>
+            <td class="text-end">{{ val.achievement_total | intcomma }}</td>
+            {% if val.diff_total < 0 %}
+            <td class="text-end text-danger">{{ val.diff_total | intcomma }}</td>
+            {% else %}
+            <td class="text-end">{{ val.diff_total | intcomma }}</td>
+            {% endif %}
+          </tr>
+        {% endfor %}
+        </tfooter>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

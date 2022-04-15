@@ -1,0 +1,53 @@
+version: "3.8"
+services:
+  db:
+    container_name: db-container
+    hostname: db-server
+    build: ./docker/mysql
+    command: --default-authentication-plugin=mysql_native_password
+    volumes:
+      - db-store-volume:/var/lib/mysql
+      - ./src/batch:/workspace
+    ports:
+      - 3307:3306
+    restart: always
+    networks:
+      - container-link
+
+  app:
+    container_name: app-container
+    hostname: app-server
+    build: ./docker/python
+    volumes:
+      - ./src:/workspace
+    ports:
+      - 8000:8000
+    restart: always
+    networks:
+      - container-link
+    tty: true
+    depends_on:
+      - db
+
+# ネットワーク定義
+networks:
+  # docker-composeで勝手にデフォルトネットワークが生成される予防。（自動で全コンテナが所属するbridgeを指定）
+  default:
+    external:
+      name: bridge
+
+  # コンテナ間通信用のネットワークセグメント
+  container-link:
+    # これが作成されるネットワーク名（同名がなければ自動生成される）
+    name: docker.internal
+    # 以下は書かなくてもよい（サンプルとして）
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: "172.20.100.0/24"
+
+volumes:
+  db-store-volume:
+    name: django_app
+    driver: local
