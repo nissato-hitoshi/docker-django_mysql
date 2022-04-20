@@ -1,7 +1,7 @@
 @echo off
 
 @rem ŠÂ‹«ŠÖ˜A•Ï”
-SET BAT_ROOT_PATH=C:\workspace\docker-django_mysql\src\batch\
+SET BAT_ROOT_PATH=C:\Users\arasawa_m\Desktop\app.test\src\batch\
 SET BAT_PATH=bat\
 SET SCRIPT_PATH=script\vbs\
 SET INPUT_PATH=input\01.—\Z\

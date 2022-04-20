@@ -56,92 +56,89 @@ function createSalesBudgetLoadDataFile(filename)
 end Function
 
 function main()
-Dim fso
-Dim path
-Dim file
-Dim excelApp
-Dim wb
-Dim ws
-Dim r
-Dim cols
-Dim i
-Dim expected
-Dim budget
-Dim years
-Dim halfyear
-Dim quarter
-Dim accuracy
-Dim objargs
-Dim target
-Dim current_version
-Dim filename
+  Dim fso
+  Dim path
+  Dim file
+  Dim excelApp
+  Dim wb
+  Dim ws
+  Dim r
+  Dim cols
+  Dim i
+  Dim expected
+  Dim budget
+  Dim years
+  Dim halfyear
+  Dim quarter
+  Dim accuracy
+  Dim objargs
+  Dim target
+  Dim current_version
+  Dim filename
 
-wscript.echo now() & ", 処理開始"
+  wscript.echo now() & ", 処理開始"
 
-'ファイルシステムオブジェクト生成
-set fso = createObject("Scripting.FileSystemObject")
+  'ファイルシステムオブジェクト生成
+  set fso = createObject("Scripting.FileSystemObject")
 
-'共通パスの生成
-'path = fso.GetAbsolutePathName("C:\workspace\docker-django_mysql\src\batch")
-'BAT ファイルにて環境変数を設定する仕様に変更
-path = getEnv("BAT_ROOT_PATH")
+  '共通パスの取得
+  'BAT ファイルにて環境変数を設定する仕様に変更
+  path = getEnv("BAT_ROOT_PATH")
 
-'コマンドライン引数の取得
-set objargs = wscript.arguments
+  'コマンドライン引数の取得
+  set objargs = wscript.arguments
 
-if objargs.count <> 2 then
-  wscript.echo "コマンドライン引数が正しく指定されていません"
-  exit function
-end if
+  if objargs.count <> 2 then
+    wscript.echo "コマンドライン引数が正しく指定されていません"
+    exit function
+  end if
 
-'ファイルの有無
-target = path & getEnv("INPUT_PATH") & objargs(0) & "期\" & objargs(0) & "期売上予算_営業資料.xlsm"
+  '読み込むファイルのパス
+  target = path & getEnv("INPUT_PATH") & objargs(0) & "期\" & objargs(0) & "期売上予算_営業資料.xlsm"
 
-if fso.FileExists(target) then
-  'Excelのインスタンスの生成
-  set excelApp = CreateObject("Excel.Application")
+  'ファイルの有無
+  if fso.FileExists(target) then
+    'Excelのインスタンスの生成
+    set excelApp = CreateObject("Excel.Application")
 
-  'Excel ファイルを開く
-  set wb = excelApp.Workbooks.open(target, , true) 
-else
-  wscript.echo "ファイルが存在しません"
-  exit function
-end if
+    'Excel ファイルを開く
+    set wb = excelApp.Workbooks.open(target, , true) 
+  else
+    wscript.echo "ファイルが存在しません"
+    exit function
+  end if
 
-if objargs(1) = 1 then
-  current_version = getCurVerupValue(objargs(0))
-elseif objargs(1) = 2 then
-  call UpSecHalfValue(objargs(0))
-  current_version = getCurVerupValue(objargs(0))
-end if
+  if objargs(1) = 1 then
+    current_version = getCurVerupValue(objargs(0))
+  elseif objargs(1) = 2 then
+    call UpSecHalfValue(objargs(0))
+    current_version = getCurVerupValue(objargs(0))
+  end if
 
-'出力ファイルを開く
-'set file = fso.createTextFile(path & "\output\" & objargs(0) & "_sales_budget_" & format(now) & ".csv", true)
+  '出力ファイル名の生成
+  filename = objargs(0) & "_" & current_version & "_sales_budget.csv"
 
-'出力ファイル名の生成
-filename = objargs(0) & "_" & current_version & "_sales_budget.csv"
+  'LOAD DATA SQLファイルの生成
+  call createSalesBudgetLoadDataFile(filename)
 
-'LOAD DATA SQLファイルの生成
-call createSalesBudgetLoadDataFile(filename)
+  '出力ファイル作成
+  set file = fso.createTextFile(path & getEnv("OUTPUT_PATH") & filename, true)
 
-'出力ファイル作成
-set file = fso.createTextFile(path & getEnv("OUTPUT_PATH") & filename, true)
+  'タイトル行の出力
+  file.writeline """accounting_period"",""version"",""sales_department"",""classification"",""sales_representative"",""supervising_department"",""client_name"",""project_name"",""operator"",""accounting_month"",""sales_budget"",""sales_expected"",""sales_achievement"",""half_period"",""quarter"",""accuracy"""
 
-'タイトル行の出力
-file.writeline """accounting_period"",""version"",""sales_department"",""classification"",""sales_representative"",""supervising_department"",""client_name"",""project_name"",""operator"",""accounting_month"",""sales_budget"",""sales_expected"",""sales_achievement"",""half_period"",""quarter"",""accuracy"""
+  '読み込む列番号の配列
+  cols = array(10, 12, 14, 16, 18, 20, 24, 26, 28, 30, 32, 34)
 
-'読み込む列番号の配列
-cols = array(10, 12, 14, 16, 18, 20, 24, 26, 28, 30, 32, 34)
+  'ワークシートのループ
+  for each ws in wb.Worksheets
 
-'ワークシートのループ
-for each ws in wb.Worksheets
+    if instr(ws.name, "実績") > 0 then
 
-  if instr(ws.name, "実績") > 0 then
+      wscript.echo now() & ", " & ws.name
 
-    wscript.echo now() & ", " & ws.name
-
-    col_b = getColBValue(ws.name)
-    col_c = getColCValue(ws.name)
+      col_b = getColBValue(ws.name)
+      col_c = getColCValue(ws.name)
 
     'ワークシート内のループ
     r = 5
@@ -190,14 +187,14 @@ for each ws in wb.Worksheets
       next 
       r = r + 1
     loop    
-  end if
-Next
+    end if
+  Next
 
-file.close
-wb.close false
-excelApp.Quit
+  file.close
+  wb.close false
+  excelApp.Quit
 
-wscript.echo now() & ", CVS作成完了！！"
+  wscript.echo now() & ", CVS作成完了！！"
 
 end function
 
@@ -208,10 +205,10 @@ function getColBValue(sheetname)
   val = mid(sheetname,3,2)
 
   select case val
-    case "第一": retval = "1:" & val
-    case "第二": retval = "2:" & val
-    case "ＢＳ": retval = "3:" & val
-    case "ＳＩ": retval = "4:" & val
+  case "第一": retval = "1:" & val
+  case "第二": retval = "2:" & val
+  case "ＢＳ": retval = "3:" & val
+  case "ＳＩ": retval = "4:" & val
   end select
 
   getColBValue = retval
@@ -231,7 +228,7 @@ function getColCValue(sheetname)
 
   getColCValue = retval
 
-  end function
+end function
 
 function getColIValue(workbookname,countno)
   Dim retval
@@ -260,7 +257,8 @@ function getColMValue(columnno)
     retval = "2:下期"
   end select
     
-    getColMvalue = retval
+  getColMvalue = retval
+
 end function
 
 function getColNValue(columnno)
@@ -278,16 +276,17 @@ function getColNValue(columnno)
   end select
     
   getColNvalue = retval
+
 end function
 
 function format(currenttime)
-Dim retval
-Dim lngyear
-Dim lngmonth
-Dim lngday
-Dim lnghour
-Dim lngminute
-Dim lngsecond
+  Dim retval
+  Dim lngyear
+  Dim lngmonth
+  Dim lngday
+  Dim lnghour
+  Dim lngminute
+  Dim lngsecond
 
   lngyear = year(currenttime)
   lngmonth = right("0" & month(currenttime),2)
@@ -299,92 +298,86 @@ Dim lngsecond
   retval = lngyear & lngmonth & lngday & lnghour & lngminute & lngsecond
 
   format = retval
+
 end function
 
-
 function getCurVerValue(workbookname)
+  Dim con
+  Dim rst
+  Dim conStr
+  Dim strsql
+  Dim sql
 
-Dim con
-Dim rst
-Dim conStr
-Dim strsql
-Dim sql
+  'ADODB.Connectionオブジェクトを変数に格納。
+  Set con = CreateObject("ADODB.Connection")
 
-'ADODB.Connectionオブジェクトを変数に格納。
-Set con = CreateObject("ADODB.Connection")
+  'ADODB.Recordsetオブジェクトを変数に格納。
+  Set rst = CreateObject("ADODB.Recordset")
 
-'ADODB.Recordsetオブジェクトを変数に格納。
-Set rst = CreateObject("ADODB.Recordset")
+  'データベースとの接続
+  con.Open SqlCon()
 
-'データベースとの接続
-con.Open SqlCon()
+  strsql = "select * from version_control where accounting_period = " & workbookname & ""
+  'レコードセットのオープン（ SELECT の実行 ）
+  rst.Open strsql, con 'SQL文の実行
 
-strsql = "select * from version_control where accounting_period = " & workbookname & ""
-'レコードセットのオープン（ SELECT の実行 ）
-rst.Open strsql, con 'SQL文の実行
-
-if rst.EOF then
-      sql = "insert into version_control(accounting_period,current_version,first_half_version,second_half_version,updated,created) "
-      sql = sql & "values(" & workbookname & ","
-      sql = sql & "1,"
-      sql = sql & "1,"
-      sql = sql & "1,"
-      sql = sql & "'" & now & "',"
-      sql = sql & "'" & now & "'"
-      sql = sql & ")"
+  if rst.EOF then
+    sql = "insert into version_control(accounting_period,current_version,first_half_version,second_half_version,updated,created) "
+    sql = sql & "values(" & workbookname & ","
+    sql = sql & "1,"
+    sql = sql & "1,"
+    sql = sql & "1,"
+    sql = sql & "'" & now & "',"
+    sql = sql & "'" & now & "'"
+    sql = sql & ")"
 
     con.Execute sql
 
     getCurVerValue = 1
-
-else
+  else
     getCurVerValue = rst("current_version").value
-end if
+  end if
 
-
-'メモリの解放（無くとも構わない）
-rst.Close: Set rst = Nothing
-con.Close: Set con = Nothing
+  'メモリの解放（無くとも構わない）
+  rst.Close: Set rst = Nothing
+  con.Close: Set con = Nothing
 
 end function
 
 function getCurVerupValue(workbookname)
+  Dim con
+  Dim rst
+  Dim conStr
+  Dim strsql
+  Dim sql
 
-Dim con
-Dim rst
-Dim conStr
-Dim strsql
-Dim sql
+  'ADODB.Connectionオブジェクトを変数に格納。
+  Set con = CreateObject("ADODB.Connection")
 
-'ADODB.Connectionオブジェクトを変数に格納。
-Set con = CreateObject("ADODB.Connection")
+  'ADODB.Recordsetオブジェクトを変数に格納。
+  Set rst = CreateObject("ADODB.Recordset")
 
-'ADODB.Recordsetオブジェクトを変数に格納。
-Set rst = CreateObject("ADODB.Recordset")
+  'データベースとの接続
+  con.Open SqlCon()
 
-'データベースとの接続
-con.Open SqlCon()
+  strsql = "select * from version_control where accounting_period = " & workbookname & ""
+  'レコードセットのオープン（ SELECT の実行 ）
+  rst.Open strsql, con 'SQL文の実行
 
-strsql = "select * from version_control where accounting_period = " & workbookname & ""
-'レコードセットのオープン（ SELECT の実行 ）
-rst.Open strsql, con 'SQL文の実行
-
-if rst.EOF then
-      sql = "insert into version_control(accounting_period,current_version,first_half_version,second_half_version,updated,created) "
-      sql = sql & "values(" & workbookname & ","
-      sql = sql & "1,"
-      sql = sql & "1,"
-      sql = sql & "1,"
-      sql = sql & "now(),"
-      sql = sql & "now()"
-      sql = sql & ")"
+  if rst.EOF then
+    sql = "insert into version_control(accounting_period,current_version,first_half_version,second_half_version,updated,created) "
+    sql = sql & "values(" & workbookname & ","
+    sql = sql & "1,"
+    sql = sql & "1,"
+    sql = sql & "1,"
+    sql = sql & "now(),"
+    sql = sql & "now()"
+    sql = sql & ")"
 
     con.Execute sql
 
     getCurVerUpValue = 1
-
-else
-    'sql = "update version_control set current_version = " & rst("current_version").value + 1 & ","
+  else
     sql = "update version_control set current_version = current_version + 1,"
     sql = sql & "updated = now() "
     sql = sql & "where accounting_period = " & workbookname 
@@ -392,50 +385,42 @@ else
     con.execute sql
 
     getCurVerUpValue = rst("current_version").value + 1
+  end if
 
-end if
-
-
-'メモリの解放（無くとも構わない）
-rst.Close: Set rst = Nothing
-con.Close: Set con = Nothing
-
+  'メモリの解放（無くとも構わない）
+  rst.Close: Set rst = Nothing
+  con.Close: Set con = Nothing
 end function
 
 function UpSecHalfValue(workbookname)
+  Dim con
+  Dim rst
+  Dim conStr
+  Dim strsql
+  Dim sql
 
-Dim con
-Dim rst
-Dim conStr
-Dim strsql
-Dim sql
+  'ADODB.Connectionオブジェクトを変数に格納。
+  Set con = CreateObject("ADODB.Connection")
 
-'ADODB.Connectionオブジェクトを変数に格納。
-Set con = CreateObject("ADODB.Connection")
+  'ADODB.Recordsetオブジェクトを変数に格納。
+  Set rst = CreateObject("ADODB.Recordset")
 
-'ADODB.Recordsetオブジェクトを変数に格納。
-Set rst = CreateObject("ADODB.Recordset")
+  'データベースとの接続
+  con.Open SqlCon()
 
-'データベースとの接続
-con.Open SqlCon()
+  strsql = "select * from version_control where accounting_period = " & workbookname & ""
+  'レコードセットのオープン（ SELECT の実行 ）
+  rst.Open strsql, con 'SQL文の実行
 
-strsql = "select * from version_control where accounting_period = " & workbookname & ""
-'レコードセットのオープン（ SELECT の実行 ）
-rst.Open strsql, con 'SQL文の実行
+  if rst.EOF then
+    wscript.echo "レコードが存在しません"
+  else
+    sql = "update version_control set second_half_version =  second_half_version + 1,"
+    sql = sql & "updated = now() "
+    sql = sql & "where accounting_period = " & workbookname   
 
-if rst.EOF then
-
-  wscript.echo "レコードが存在しません"
-
-else
-
-  sql = "update version_control set second_half_version =  second_half_version + 1,"
-  sql = sql & "updated = now() "
-  sql = sql & "where accounting_period = " & workbookname   
-
-  con.Execute sql
-
-end if
+    con.Execute sql
+  end if
 
 end function
 
