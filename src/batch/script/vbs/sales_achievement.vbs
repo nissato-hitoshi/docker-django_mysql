@@ -1,5 +1,61 @@
 call main()
 
+' 
+' ŠT—vFŠÂ‹«•Ï”’l‚ğæ“¾
+' ˆø”Fenv_name/ŠÂ‹«•Ï”–¼(%‚È‚µ)
+' –ß’lFstring/ŠÂ‹«•Ï”’l
+' ”õlF
+'
+function getEnv(env_name)
+    Dim objShell
+    
+    'ƒVƒFƒ‹ƒIƒuƒWƒFƒNƒgì¬
+    Set objShell = CreateObject("WScript.Shell")
+    
+    'ŠÂ‹«•Ï”æ“¾
+    getEnv = objShell.ExpandEnvironmentStrings("%" & env_name & "%")
+end Function
+
+' 
+' ŠT—vFCSV Load —pSQLƒtƒ@ƒCƒ‹¶¬
+' ˆø”Ffilename/CSVƒtƒ@ƒCƒ‹–¼
+' –ß’lFboolean/True:³íAFalse:ˆÙí
+' ”õlF
+'
+function createSalesAchievementLoadDataFile(filename)
+    Dim fso
+    Dim file
+    Dim sql_file
+    Dim data_file
+
+    'ƒtƒ@ƒCƒ‹ƒVƒXƒeƒ€ƒIƒuƒWƒFƒNƒg¶¬
+    set fso = createObject("Scripting.FileSystemObject")
+
+    'ì¬‚·‚éSQLƒtƒ@ƒCƒ‹–¼‚ğ¶¬
+    sql_file = getEnv("BAT_ROOT_PATH") & getEnv("SQL_PATH") & getEnv("SQL_FILE_NAME")
+
+    'ƒCƒ“ƒ|[ƒg‚·‚éCSVƒtƒ@ƒCƒ‹–¼‚ğ¶¬
+    data_file = getEnv("CONTAINER_LOAD_FILE_PATH") & filename
+
+    'o—Íƒtƒ@ƒCƒ‹ì¬
+    set file = fso.createTextFile(sql_file, true)
+
+    'LOAD DATA •¶‚Ìo—Í
+    file.writeline "set character_set_database=cp932;"
+    file.writeline "delete from sales_achievement where accounting_period = 43;"
+    file.writeline "load data"
+    file.writeline "infile '" & data_file & "'"
+    file.writeline "into table sales_achievement"
+    file.writeline "fields terminated by ','"
+    file.writeline "enclosed by '""'"
+    file.writeline "lines terminated by '\r\n'"
+    file.writeline "ignore 1 rows"
+    file.writeline "(@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20)"
+    file.writeline "set created=now(), updated=now(), accounting_period=@1, project_code=@2, project_name=@3, client_name=@4, accounting_month=@5, sales_department=@6, business_sector=@7, supervising_department=@8, amount_of_sales=@9, material_cost=@10, labor_cost=@11, outsourcing_cost=@12, expenses=@13, cost_total=@14, gross_profit=@15, gross_profit_margin=@16, type_of_contract=@17, kinds=@18, project_parent_code=@19, project_parent_name=@20;"
+
+    file.close()
+end Function
+
 function main()
 
     'ŒŸÀÑƒf[ƒ^‚Ìˆ—
@@ -14,43 +70,31 @@ function main()
     Dim accountingPeriodVlue
     Dim infilemonth
     Dim file_name
-    dim sqlfilename
 
-    'ƒRƒ}ƒ“ƒhƒ‰ƒCƒ“ˆø”‚Ì—˜—p
-    set objargs = wscript.arguments
-
-    if objargs.count <> 2 then
-        wscript.echo "ƒRƒ}ƒ“ƒhƒ‰ƒCƒ“ˆø”‚ğ‚Q‚Âw’è‚µ‚Ä‚­‚¾‚³‚¢"
-        exit function
-    end if
+    wscript.echo now() & ", ˆ—ŠJn"
 
     'ƒtƒ@ƒCƒ‹ƒVƒXƒeƒ€ƒIƒuƒWƒFƒNƒg¶¬
     set fso = createObject("Scripting.FileSystemObject")
 
-    'ƒpƒX‚Ìæ“¾
+    '‹¤’ÊƒpƒX‚Ìæ“¾
     path = getEnv("BAT_ROOT_PATH")
 
+    'ƒRƒ}ƒ“ƒhƒ‰ƒCƒ“ˆø”‚Ì—˜—p
+    set objargs = wscript.arguments
+
+    if objargs.count <> 1 then
+        wscript.echo "ƒRƒ}ƒ“ƒhƒ‰ƒCƒ“ˆø”‚Í‚P‚Âw’è‚µ‚Ä‚­‚¾‚³‚¢"
+        exit function
+    end if
+
     '‰ïŒvŠú
-    accountingPeriodVlue = getColAValue(objargs(1))
-
-    'o—Íƒtƒ@ƒCƒ‹‚Ì¶¬
-    sqlfilename = accountingPeriodVlue & "_" & objargs(1) & "_sales_achievement.csv"
-    file_name = path & "\output\" & sqlfilename
-    set file = fso.createTextFile(file_name, true)
-
-    'ˆês–Ú‚Íƒ^ƒCƒgƒ‹–¼‚ğo—Í
-    file.writeline """accounting_period"",""project_code"",""project_name"",""client_name""," _
-               & "accounting_month"",""sales_department"",""business_sector""," _
-               & "supervising_department"",""amount_of_sales"",""material_cost"",""labor_cost""," _
-               & "outsourcing_cost"",""expenses"",""cost_total"",""gross_profit""," _
-               & "gross_profit_margin"",""type_of_contract"",""kinds"",""project_parent_code""," _
-               & "project_parent_name"""
+    accountingPeriodVlue = getColAValue(objargs(0))
 
     '“Ç‚İ‚Şƒtƒ@ƒCƒ‹‚ÌŒ
-    infilemonth = getInfileMonth(objargs(1))
+    infilemonth = getInfileMonth(objargs(0))
 
     '“Ç‚İ‚Şƒtƒ@ƒCƒ‹‚ÌƒpƒX
-    target = path & "\input\02.ÀÑ\" & accountingPeriodVlue & "Šú\" & objargs(1) & "\" & infilemonth & "ŒŒŸÀÑƒf[ƒ^.xlsx"
+    target = path & getEnv("INPUT_PATH") & accountingPeriodVlue & "Šú\" & objargs(0) & "\" & infilemonth & "ŒŒŸÀÑƒf[ƒ^.xlsx"
 
     'ƒtƒ@ƒCƒ‹‚Ì—L–³ ŒŸÀÑƒf[ƒ^
     if fso.fileexists(target) then
@@ -64,6 +108,24 @@ function main()
         exit function
     end if
 
+    'o—Íƒtƒ@ƒCƒ‹–¼‚Ì¶¬
+    file_name = accountingPeriodVlue & "_" & objargs(0) & "_sales_achievement.csv"
+
+    'LOAD DATA SQLƒtƒ@ƒCƒ‹‚Ì¶¬
+    call createSalesAchievementLoadDataFile(file_name)
+
+    'o—Íƒtƒ@ƒCƒ‹ì¬
+    set file = fso.createTextFile(path & getEnv("OUTPUT_PATH") & file_name, true)
+
+    'ˆês–Ú‚Íƒ^ƒCƒgƒ‹–¼‚ğo—Í
+    file.writeline """accounting_period"",""project_code"",""project_name"",""client_name""," _
+        & "accounting_month"",""sales_department"",""business_sector""," _
+        & "supervising_department"",""mount_of_sales"",""material_cost"",""labor_cost""," _
+        & "outsourcing_cost"",""expenses"",""cost_total"",""gross_profit""," _
+        & "gross_profit_margin"",""type_of_contract"",""kinds"",""project_parent_code""," _
+        & "project_parent_name"""
+
+
     set ws = wb.Worksheets("ŒŸÀÑƒf[ƒ^")
 
     'ÅIs‚Ü‚ÅŒJ‚è•Ô‚·
@@ -76,7 +138,6 @@ function main()
             & ws.cells(r, "K") & "," & ws.cells(r, "L") & "," & ws.cells(r, "M") & "," & ws.cells(r, "N") & "," _ 
             & ws.cells(r, "O") & ",""" & ws.cells(r, "P") & """,""" & ws.cells(r, "Q") & """,""" & ws.cells(r, "R") & """,""" _ 
             & ws.cells(r, "S") & """"
-
     next
 
     file.close
@@ -85,131 +146,132 @@ function main()
 
     excelApp.Quit
 
+    wscript.echo now() & ", ŒŸÀÑˆ—Š®—¹II"
+
+
     '‰Ò“®€”õ‹àƒf[ƒ^‚Ìˆ—
-    call outFileNumber(objargs(1), file_name)
+    call outFileNumber(objargs(0), file_name)
 
-    'ƒCƒ“ƒ|[ƒg—pSQLƒtƒ@ƒCƒ‹ì¬
-    call createSalesAchievementLoadDataFile(sqlfilename, accountingPeriodVlue)
+    wscript.echo now() & ", ‰Ò“­€”õ‹àˆ—Š®—¹II"
 
-    wscript.echo "I—¹II"
+    wscript.echo now() & ", CVSì¬Š®—¹II"
 
 end function
+
 
 
 'ŒŸÀÑE‰Ò“®€”õ‹àFu‰ïŒvŠúv‚Ìİ’è
 function getColAValue(yyyymm)
-Dim yyyy
-Dim mm
-Dim letval
+    Dim yyyy
+    Dim mm
+    Dim letval
 
-yyyy = left(yyyymm,4) 
-mm = right(yyyymm,2)
+    yyyy = left(yyyymm,4) 
+    mm = right(yyyymm,2)
 
-if mm >= 10 then
-    letval = yyyy - 1978 
-else
-   letval = yyyy - 1979
-end if
+    if mm >= 10 then
+        letval = yyyy - 1978 
+    else
+        letval = yyyy - 1979
+    end if
 
-getColAValue = letval
+    getColAValue = letval
 
 end function
 
 
-'o—Íƒtƒ@ƒCƒ‹‚ÌuŒv‚Ìİ’è
+'“Ç‚İ‚ŞEo—Íƒtƒ@ƒCƒ‹‚ÌuŒv‚Ìİ’è
 function getInfileMonth(yyyymm)
-Dim mm
-Dim retval
+    Dim mm
+    Dim retval
 
-mm = right(yyyymm,2)
+    mm = right(yyyymm,2)
 
-if mm >= 10 then
-    retval = mm
-else
-    retval = right(mm,1)
-end if
+    if mm >= 10 then
+        retval = mm
+    else
+        retval = right(mm,1)
+    end if
 
-getInfileMonth = retval
+    getInfileMonth = retval
 
 end function
 
 
 'o—Íƒtƒ@ƒCƒ‹‚ÌuÀs“úv‚Ìİ’è
 function format(currenttime)
-Dim retval
-Dim lngyear
-Dim lngmonth
-Dim lngday
-Dim lnghour
-Dim lngminute
-Dim lngsecond
+    Dim retval
+    Dim lngyear
+    Dim lngmonth
+    Dim lngday
+    Dim lnghour
+    Dim lngminute
+    Dim lngsecond
 
-  lngyear = year(currenttime)
-  lngmonth = right("0" & month(currenttime),2)
-  lngday = right("0" & day(currenttime),2)
-  lnghour = right("0" & hour(currenttime),2)
-  lngminute = right("0" & minute(currenttime),2)
-  lngsecond = right("0" & second(currenttime),2)
+    lngyear = year(currenttime)
+    lngmonth = right("0" & month(currenttime),2)
+    lngday = right("0" & day(currenttime),2)
+    lnghour = right("0" & hour(currenttime),2)
+    lngminute = right("0" & minute(currenttime),2)
+    lngsecond = right("0" & second(currenttime),2)
 
-  retval = lngyear & lngmonth & lngday & lnghour & lngminute & lngsecond
+    retval = lngyear & lngmonth & lngday & lnghour & lngminute & lngsecond
 
-  format = retval
+    format = retval
 
 end function
 
 
 'ŒŸÀÑFuŒvãŒv‚Ìİ’è
 function getColEValue(wsD,ki)
-Dim yyyy
-Dim mm
-Dim letval
+    Dim yyyy
+    Dim mm
+    Dim letval
 
-yyyy = ki + 1978
-mm = replace(wsD,"Œ", "")
+    yyyy = ki + 1978
+    mm = replace(wsD,"Œ", "")
 
-if mm >= 10  then
-    letval = yyyy & mm
-else
-    letval = (yyyy + 1) & ("0" & mm)
-end if
+    if mm >= 10  then
+        letval = yyyy & mm
+    else
+        letval = (yyyy + 1) & ("0" & mm)
+    end if
 
-getColEValue = letval
+    getColEValue = letval
 
 end function
 
 
-
 '‰Ò“®€”õ‹àƒf[ƒ^‚Ìˆ—
 function operatingReserves(yyyymm, filename)
-Dim fso
-Dim path
-Dim target2
-Dim accountingPeriodVlue
-Dim infilemonth
-Dim file
-Dim excelApp
-Dim wb2
-Dim ws2
-Dim r
+    Dim fso
+    Dim path
+    Dim target2
+    Dim accountingPeriodVlue
+    Dim infilemonth
+    Dim file
+    Dim excelApp
+    Dim wb2
+    Dim ws2
+    Dim r
 
+    'ƒtƒ@ƒCƒ‹ƒVƒXƒeƒ€ƒIƒuƒWƒFƒNƒg¶¬
+    set fso = createObject("Scripting.FileSystemObject")
 
-'ƒtƒ@ƒCƒ‹ƒVƒXƒeƒ€ƒIƒuƒWƒFƒNƒg¶¬
-set fso = createObject("Scripting.FileSystemObject")
+    '‹¤’ÊƒpƒX‚Ìæ“¾
+    path = getEnv("BAT_ROOT_PATH")
 
-'ƒpƒX‚Ìæ“¾
-path = getEnv("BAT_ROOT_PATH")
+    'o—Íƒtƒ@ƒCƒ‹‚Ö’Ç‰Á
+    set file = fso.OpenTextFile(path & getEnv("OUTPUT_PATH") & filename, 8)
 
-'‰ïŒvŠú
-accountingPeriodVlue = getColAValue(yyyymm)    
+    '‰ïŒvŠú
+    accountingPeriodVlue = getColAValue(yyyymm)    
 
-'“Ç‚İ‚Şƒtƒ@ƒCƒ‹‚ÌŒ
-infilemonth = getInfileMonth(yyyymm)             
+    '“Ç‚İ‚Şƒtƒ@ƒCƒ‹‚ÌŒ
+    infilemonth = getInfileMonth(yyyymm)             
 
-'o—Íƒtƒ@ƒCƒ‹‚Ö’Ç‰Á
-set file = fso.OpenTextFile(filename, 8)
-
-'“Ç‚İ‚Şƒtƒ@ƒCƒ‹‚ÌƒpƒX@
-target2 = path & "\input\02.ÀÑ\" & accountingPeriodVlue & "Šú\" & yyyymm & "\åŠÇ•”–å•Ê‰Ò“®€”õ‹àŠz" & infilemonth & "Œ.xlsx" 
+    '“Ç‚İ‚Şƒtƒ@ƒCƒ‹‚ÌƒpƒX@
+    target2 = path & getEnv("INPUT_PATH") & accountingPeriodVlue & "Šú\" & yyyymm & "\åŠÇ•”–å•Ê‰Ò“®€”õ‹àŠz" & infilemonth & "Œ.xlsx" 
         
     'ƒtƒ@ƒCƒ‹‚Ì—L–³ åŠÇ•”–å‰Ò“®€”õ‹àƒf[ƒ^
      if fso.fileexists(target2) then
@@ -224,9 +286,9 @@ target2 = path & "\input\02.ÀÑ\" & accountingPeriodVlue & "Šú\" & yyyymm & "\
         exit function
     end if
 
-set ws2 = wb2.Worksheets("ƒvƒƒWƒFƒNƒgˆê——•\")
+    set ws2 = wb2.Worksheets("ƒvƒƒWƒFƒNƒgˆê——•\")
 
-r = 9
+    r = 9
 
     do    
         'ÅIs‚Ì”»’è
@@ -247,7 +309,7 @@ r = 9
             gross_profit_margin =  getColOValue(cost_total)                '‘e—˜—¦
 
 
-            if fso.fileexists(filename) then 
+            if fso.fileexists(path & getEnv("OUTPUT_PATH") & filename) then 
 
                 'CSV‚Éo—Í‚·‚éƒf[ƒ^
                 file.writeline accountingPeriodVlue & ",""" & project_code & """,""" & ws2.cells(r,"B") & """,""-"",""" _
@@ -256,30 +318,30 @@ r = 9
                     & "-"",""-"",""38300015"",""‹ZpŒ¤CE‰Ò“®€”õ""" 
 
             else
-                wscript.echo "ƒtƒ@ƒCƒ‹‚ª‘¶İ‚µ‚Ü‚¹‚ñ"
+                wscript.echo "ƒtƒ@ƒCƒ‹‚ª‘¶İ‚µ‚Ü‚¹‚ñ."
                 exit function
 
             end if
 
-        r = r + 1
+            r = r + 1
     loop
 
-wb2.close false
-file.close 
+    wb2.close false
+    file.close 
 
 end function
 
 
 'w’è”NŒ‚ğƒ‹[ƒv‚·‚éˆ—
 function outFileNumber(yyyymm, filename)
-Dim yyyy
-Dim mm
-Dim ki
-Dim arrMonth
-Dim i
+    Dim yyyy
+    Dim mm
+    Dim ki
+    Dim arrMonth
+    Dim i
 
-yyyy = left(yyyymm,4)
-mm = right(yyyymm,2)
+    yyyy = left(yyyymm,4)
+    mm = right(yyyymm,2)
 
     if mm >= 10 then
         ki = yyyy - 1978
@@ -287,10 +349,10 @@ mm = right(yyyymm,2)
         ki = yyyy - 1979
     end if
 
-yyyy = 1978 + ki
+    yyyy = 1978 + ki
 
-'w’è‰ïŒvŠú‚ÌŠJn”NŒ‚©‚çI—¹”NŒ‚Ì”z—ñ‚ğì¬
-arrMonth = Array(yyyy & "10", yyyy & "11", yyyy & "12", (yyyy+1) & "01", (yyyy+1) & "02", (yyyy+1) & "03", (yyyy+1) & "04", (yyyy+1) & "05", (yyyy+1) & "06", (yyyy+1) & "07", (yyyy+1) & "08", (yyyy+1) & "09")
+    'w’è‰ïŒvŠú‚ÌŠJn”NŒ‚©‚çI—¹”NŒ‚Ì”z—ñ‚ğì¬
+    arrMonth = Array(yyyy & "10", yyyy & "11", yyyy & "12", (yyyy+1) & "01", (yyyy+1) & "02", (yyyy+1) & "03", (yyyy+1) & "04", (yyyy+1) & "05", (yyyy+1) & "06", (yyyy+1) & "07", (yyyy+1) & "08", (yyyy+1) & "09")
 
     '”z—ñ‚ÌƒŠƒXƒg‚ğw’è”NŒ‚Ü‚Åƒ‹[ƒv‚Å‰ñ‚·
     for i = 0 To UBound(arrMonth)
@@ -304,7 +366,7 @@ end function
 
 '‰Ò“®€”õ‹àFu–‹Æ•”v‚Ìİ’è
 function getColFValue(projectcode)
- Dim retval
+    Dim retval
 
     select case projectcode
         case "38300015-00": retval = "ZZ"
@@ -325,13 +387,14 @@ function getColFValue(projectcode)
         case else: retval = "XX"
     end select
     
-     getColFValue= retval
+    getColFValue= retval
 
 end function
 
+
 '‰Ò“®€”õ‹àFuåŠÇ•”–åv‚Ìİ’è
 function getColGValue(projectcode)
- Dim retval
+    Dim retval
 
     select case projectcode
         case "38300015-00": retval = "ZZ"
@@ -356,9 +419,10 @@ function getColGValue(projectcode)
 
 end function
 
+
 '‰Ò“®€”õ‹àFu‘e—˜—¦v‚Ìİ’è
 function getColOValue(costtotal)
-Dim letval
+    Dim letval
 
     if costtotal >= 0 then
         letval = -100
@@ -366,83 +430,6 @@ Dim letval
         letval = 0
     end if
 
-getColOValue = letval
+    getColOValue = letval
 
 end function
-
-' 
-' ŠT—vFCSV Load —pSQLƒtƒ@ƒCƒ‹¶¬
-' ˆø”Ffilename/CSVƒtƒ@ƒCƒ‹–¼
-' –ß’lFboolean/True:³íAFalse:ˆÙí
-' ”õlF
-'
-function createSalesAchievementLoadDataFile(filename, ki)
-  Dim fso
-  Dim file
-  Dim sql_file
-  Dim data_file
-
-  'ƒtƒ@ƒCƒ‹ƒVƒXƒeƒ€ƒIƒuƒWƒFƒNƒg¶¬
-  set fso = createObject("Scripting.FileSystemObject")
-
-  'ì¬‚·‚éSQLƒtƒ@ƒCƒ‹–¼‚ğ¶¬
-  sql_file = getEnv("BAT_ROOT_PATH") & getEnv("SQL_PATH") & getEnv("SQL_FILE_NAME")
-
-  'ƒCƒ“ƒ|[ƒg‚·‚éCSVƒtƒ@ƒCƒ‹–¼‚ğ¶¬
-  data_file = getEnv("CONTAINER_LOAD_FILE_PATH") & filename
-
-  'o—Íƒtƒ@ƒCƒ‹ì¬
-  set file = fso.createTextFile(sql_file, true)
-
-  'LOAD DATA •¶‚Ìo—Í
-  file.writeline "set character_set_database=cp932;"
-  file.writeline "delete from sales_achievement where accounting_period = " & ki & ";"
-  file.writeline "load data"
-  file.writeline "infile '" & data_file & "'"
-  file.writeline "into table sales_achievement"
-  file.writeline "fields terminated by ','"
-  file.writeline "enclosed by '""'"
-  file.writeline "lines terminated by '\r\n'"
-  file.writeline "ignore 1 rows"
-  file.writeline "(@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20)"
-  file.writeline "set created = now()"
-  file.writeline ", updated = now()"
-  file.writeline ", accounting_period=@1"
-  file.writeline ", project_code=@2"
-  file.writeline ", project_name=@3"
-  file.writeline ", client_name=@4"
-  file.writeline ", accounting_month=@5"
-  file.writeline ", sales_department=@6"
-  file.writeline ", business_sector=@7"
-  file.writeline ", supervising_department=@8"
-  file.writeline ", amount_of_sales=@9"
-  file.writeline ", material_cost=@10"
-  file.writeline ", labor_cost=@11"
-  file.writeline ", outsourcing_cost=@12"
-  file.writeline ", expenses=@13"
-  file.writeline ", cost_total=@14"
-  file.writeline ", gross_profit=@15"
-  file.writeline ", gross_profit_margin=@16"
-  file.writeline ", type_of_contract=@17"
-  file.writeline ", kinds=@18"
-  file.writeline ", project_parent_code=@19"
-  file.writeline ", project_parent_name=@20;"
-  file.close()
-end Function
-
-' 
-' ŠT—vFŠÂ‹«•Ï”’l‚ğæ“¾
-' ˆø”Fenv_name/ŠÂ‹«•Ï”–¼(%‚È‚µ)
-' –ß’lFstring/ŠÂ‹«•Ï”’l
-' ”õlF
-'
-function getEnv(env_name)
-  Dim objShell
-  
-  'ƒVƒFƒ‹ƒIƒuƒWƒFƒNƒgì¬
-  Set objShell = CreateObject("WScript.Shell")
-  
-  'ŠÂ‹«•Ï”æ“¾
-  getEnv = objShell.ExpandEnvironmentStrings("%" & env_name & "%")
-end Function
-
