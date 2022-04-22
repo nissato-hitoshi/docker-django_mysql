@@ -29,3 +29,4 @@ FROM
     GROUP BY
       sales_department
   ) B ON A.sales_department = B.sales_department;
+  
