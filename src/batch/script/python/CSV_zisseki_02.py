@@ -1,4 +1,3 @@
-
 class ParamError(Exception):
     pass
 
@@ -10,6 +9,7 @@ try:
     import csv
     import logging
     import os
+    import MySQLdb
     import config       # config.py モジュール（自作）
 
 
@@ -293,6 +293,80 @@ try:
         project_parent_code.append(pj_p_code)        # プロジェクト親番
         project_parent_name.append(pj_p_name)        # プロジェクト親番名
 
+    def mysql_connect():
+        """
+        MySQL接続
+
+        Returns
+        -------
+        conn : Connection
+        cur : Cursor
+        """
+        conn = MySQLdb.connect(
+            user=config.MYSQL_USER,
+            port=int(config.MYSQL_PORT),
+            passwd=config.MYSQL_PW,
+            host=config.MYSQL_HOST,
+            db=config.MYSQL_DB,
+            local_infile=True)
+
+        cur = conn.cursor() # カーソルを取得する
+        return (conn, cur)
+
+    def csv_load(kaikeiki, output_name):
+        """
+        CSVへのLOAD関数
+
+        Parameters
+        ----------
+        kaikeiki : int
+        output_name : str
+
+        """
+        conn, cur = mysql_connect() # MySQL接続
+        try:
+            # 対象期のデータを削除
+            delete_sql = 'DELETE FROM sales_achievement WHERE accounting_period = %s;'
+            cur.execute(delete_sql, (kaikeiki,))
+            # 列指定LOAD
+            load_sql = ('''LOAD DATA LOCAL INFILE %s
+                INTO TABLE sales_achievement
+                FIELDS TERMINATED BY ','
+                ENCLOSED BY '"'
+                LINES TERMINATED BY '\r\n'
+                IGNORE 1 LINES
+                (@1, @2, @3, @4, @5, @6, @7, @8, @9, @10, @11, @12, @13, @14, @15, @16, @17, @18, @19, @20)
+                SET
+                updated = now(),
+                created = now(),
+                accounting_period = @1,
+                project_code = @2,
+                project_name = @3,
+                client_name = @4,
+                accounting_month = @5,
+                sales_department = @6,
+                business_sector = @7,
+                supervising_department = @8,
+                mount_of_sales = @9,
+                material_cost = @10,
+                labor_cost = @11,
+                outsourcing_cost = @12,
+                expenses = @13,
+                cost_total = @14,
+                gross_profit = @15,
+                gross_profit_margin = @16,
+                type_of_contract = @17,
+                kinds = @18,
+                project_parent_code = @19,
+                project_parent_name = @20''')
+            cur.execute(load_sql, (output_name,))
+            conn.commit()
+        except MySQLdb.Error as e:
+            print('MySQLdb.Error: ', e)
+        cur.close
+        conn.close
+
+
 
     ######################################
     # メイン処理                         #
@@ -408,26 +482,26 @@ try:
 
 
     # 出力用辞書型
-    dict1 = { '会計期': accounting_period,
-            'プロジェクトコード': project_code, 
-            'プロジェクト名': project_name,
-            '取引先': client_name,
-            '計上月': accounting_month,
-            '営業部門': sales_department,
-            '事業部': business_sector,
-            '主管部門': supervising_department,
-            '売上高': mount_of_sales,
-            '材料費': material_cost,
-            '労務費': labor_cost,
-            '外注費': outsourcing_cost,
-            '経費': expenses,
-            '原価計': cost_total,
-            '粗利額': gross_profit,
-            '粗利率': gross_profit_margin,
-            '契約形態': type_of_contract,
-            '種別': kinds,
-            'プロジェクト親番': project_parent_code,
-            'プロジェクト親番名': project_parent_name
+    dict1 = { 'accounting_period': accounting_period,
+            'project_code': project_code, 
+            'project_name': project_name,
+            'client_name': client_name,
+            'accounting_month': accounting_month,
+            'sales_department': sales_department,
+            'business_sector': business_sector,
+            'supervising_department': supervising_department,
+            'mount_of_sales': mount_of_sales,
+            'material_cost': material_cost,
+            'labor_cost': labor_cost,
+            'outsourcing_cost': outsourcing_cost,
+            'expenses': expenses,
+            'cost_total': cost_total,
+            'gross_profit': gross_profit,
+            'gross_profit_margin': gross_profit_margin,
+            'type_of_contract': type_of_contract,
+            'kinds': kinds,
+            'project_parent_code': project_parent_code,
+            'project_parent_name': project_parent_name
             }
 
     #dataframe作成
@@ -437,24 +511,24 @@ try:
     t_delta = datetime.timedelta(hours=9)
     JST = datetime.timezone(t_delta, 'JST')
     now = datetime.datetime.now(JST)
-    d = now.strftime('%Y%m%d%H%M%S')
+    d = now.strftime('%Y%m')
 
 
     # 文字コード、区切り文字処理
-    if len(args) >= 5:
+    if len(args) >= 6:
         # 文字コード
-        if args[3] == ' ':
+        if args[4] == ' ':
             my_encoding = 'utf_8_sig'
         else:
-            my_encoding = args[3]
+            my_encoding = args[4]
         # 区切り文字
-        my_sep = args[4]
-    elif len(args) == 4:
+        my_sep = args[5]
+    elif len(args) == 5:
         # 文字コード
-        if args[3] == ' ':
+        if args[4] == ' ':
             my_encoding = 'utf_8_sig'
         else:
-            my_encoding = args[3]
+            my_encoding = args[4]
         # 区切り文字
         my_sep = ','
     else:
@@ -464,10 +538,18 @@ try:
         my_sep = ','
 
     # 出力ファイル名
-    output_name = config.OUTPUT_PATH + str(kaikeiki) + '_sales_achievement_' + d 
+    output_name = config.OUTPUT_PATH + str(kaikeiki) + '_' + d + '_sales_achievement.csv'
 
     # CSV形式で出力
-    df.to_csv(output_name + '.csv', sep=my_sep, encoding=my_encoding, index=False, quoting=csv.QUOTE_NONNUMERIC)
+    df.to_csv(output_name, sep=my_sep, encoding=my_encoding, index=False, quoting=csv.QUOTE_NONNUMERIC)
+
+    # CSVからLOAD
+    if int(args[3]) == 1:    # LOADするとき
+        csv_load(kaikeiki, output_name)
+    elif int(args[3]) == 2:  # LOADしないとき
+        pass
+    else:
+        raise ParamError
 
 except(ImportError, ModuleNotFoundError) as e:
     print('Import Error!:', e)

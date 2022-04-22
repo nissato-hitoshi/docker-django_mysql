@@ -1,61 +1,5 @@
 call main()
 
-' 
-' 概要：環境変数値を取得
-' 引数：env_name/環境変数名(%なし)
-' 戻値：string/環境変数値
-' 備考：
-'
-function getEnv(env_name)
-    Dim objShell
-    
-    'シェルオブジェクト作成
-    Set objShell = CreateObject("WScript.Shell")
-    
-    '環境変数取得
-    getEnv = objShell.ExpandEnvironmentStrings("%" & env_name & "%")
-end Function
-
-' 
-' 概要：CSV Load 用SQLファイル生成
-' 引数：filename/CSVファイル名
-' 戻値：boolean/True:正常、False:異常
-' 備考：
-'
-function createSalesAchievementLoadDataFile(filename)
-    Dim fso
-    Dim file
-    Dim sql_file
-    Dim data_file
-
-    'ファイルシステムオブジェクト生成
-    set fso = createObject("Scripting.FileSystemObject")
-
-    '作成するSQLファイル名を生成
-    sql_file = getEnv("BAT_ROOT_PATH") & getEnv("SQL_PATH") & getEnv("SQL_FILE_NAME")
-
-    'インポートするCSVファイル名を生成
-    data_file = getEnv("CONTAINER_LOAD_FILE_PATH") & filename
-
-    '出力ファイル作成
-    set file = fso.createTextFile(sql_file, true)
-
-    'LOAD DATA 文の出力
-    file.writeline "set character_set_database=cp932;"
-    file.writeline "delete from sales_achievement where accounting_period = 43;"
-    file.writeline "load data"
-    file.writeline "infile '" & data_file & "'"
-    file.writeline "into table sales_achievement"
-    file.writeline "fields terminated by ','"
-    file.writeline "enclosed by '""'"
-    file.writeline "lines terminated by '\r\n'"
-    file.writeline "ignore 1 rows"
-    file.writeline "(@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20)"
-    file.writeline "set created=now(), updated=now(), accounting_period=@1, project_code=@2, project_name=@3, client_name=@4, accounting_month=@5, sales_department=@6, business_sector=@7, supervising_department=@8, amount_of_sales=@9, material_cost=@10, labor_cost=@11, outsourcing_cost=@12, expenses=@13, cost_total=@14, gross_profit=@15, gross_profit_margin=@16, type_of_contract=@17, kinds=@18, project_parent_code=@19, project_parent_name=@20;"
-
-    file.close()
-end Function
-
 function main()
 
     '月次実績データの処理
@@ -70,31 +14,43 @@ function main()
     Dim accountingPeriodVlue
     Dim infilemonth
     Dim file_name
-
-    wscript.echo now() & ", 処理開始"
-
-    'ファイルシステムオブジェクト生成
-    set fso = createObject("Scripting.FileSystemObject")
-
-    '共通パスの取得
-    path = getEnv("BAT_ROOT_PATH")
+    dim sqlfilename
 
     'コマンドライン引数の利用
     set objargs = wscript.arguments
 
-    if objargs.count <> 1 then
-        wscript.echo "コマンドライン引数は１つ指定してください"
+    if objargs.count <> 2 then
+        wscript.echo "コマンドライン引数を２つ指定してください"
         exit function
     end if
 
+    'ファイルシステムオブジェクト生成
+    set fso = createObject("Scripting.FileSystemObject")
+
+    'パスの取得
+    path = getEnv("BAT_ROOT_PATH")
+
     '会計期
-    accountingPeriodVlue = getColAValue(objargs(0))
+    accountingPeriodVlue = getColAValue(objargs(1))
+
+    '出力ファイルの生成
+    sqlfilename = accountingPeriodVlue & "_" & objargs(1) & "_sales_achievement.csv"
+    file_name = path & "\output\" & sqlfilename
+    set file = fso.createTextFile(file_name, true)
+
+    '一行目はタイトル名を出力
+    file.writeline """accounting_period"",""project_code"",""project_name"",""client_name""," _
+               & "accounting_month"",""sales_department"",""business_sector""," _
+               & "supervising_department"",""amount_of_sales"",""material_cost"",""labor_cost""," _
+               & "outsourcing_cost"",""expenses"",""cost_total"",""gross_profit""," _
+               & "gross_profit_margin"",""type_of_contract"",""kinds"",""project_parent_code""," _
+               & "project_parent_name"""
 
     '読み込むファイルの月
-    infilemonth = getInfileMonth(objargs(0))
+    infilemonth = getInfileMonth(objargs(1))
 
     '読み込むファイルのパス
-    target = path & getEnv("INPUT_PATH") & accountingPeriodVlue & "期\" & objargs(0) & "\" & infilemonth & "月月次実績データ.xlsx"
+    target = path & "\input\02.実績\" & accountingPeriodVlue & "期\" & objargs(1) & "\" & infilemonth & "月月次実績データ.xlsx"
 
     'ファイルの有無 月次実績データ
     if fso.fileexists(target) then
@@ -108,24 +64,6 @@ function main()
         exit function
     end if
 
-    '出力ファイル名の生成
-    file_name = accountingPeriodVlue & "_" & objargs(0) & "_sales_achievement.csv"
-
-    'LOAD DATA SQLファイルの生成
-    call createSalesAchievementLoadDataFile(file_name)
-
-    '出力ファイル作成
-    set file = fso.createTextFile(path & getEnv("OUTPUT_PATH") & file_name, true)
-
-    '一行目はタイトル名を出力
-    file.writeline """accounting_period"",""project_code"",""project_name"",""client_name""," _
-        & "accounting_month"",""sales_department"",""business_sector""," _
-        & "supervising_department"",""mount_of_sales"",""material_cost"",""labor_cost""," _
-        & "outsourcing_cost"",""expenses"",""cost_total"",""gross_profit""," _
-        & "gross_profit_margin"",""type_of_contract"",""kinds"",""project_parent_code""," _
-        & "project_parent_name"""
-
-
     set ws = wb.Worksheets("月次実績データ")
 
     '最終行まで繰り返す
@@ -138,6 +76,7 @@ function main()
             & ws.cells(r, "K") & "," & ws.cells(r, "L") & "," & ws.cells(r, "M") & "," & ws.cells(r, "N") & "," _ 
             & ws.cells(r, "O") & ",""" & ws.cells(r, "P") & """,""" & ws.cells(r, "Q") & """,""" & ws.cells(r, "R") & """,""" _ 
             & ws.cells(r, "S") & """"
+
     next
 
     file.close
@@ -146,132 +85,131 @@ function main()
 
     excelApp.Quit
 
-    wscript.echo now() & ", 月次実績処理完了！！"
-
-
     '稼動準備金データの処理
-    call outFileNumber(objargs(0), file_name)
+    call outFileNumber(objargs(1), file_name)
 
-    wscript.echo now() & ", 稼働準備金処理完了！！"
+    'インポート用SQLファイル作成
+    call createSalesAchievementLoadDataFile(sqlfilename, accountingPeriodVlue)
 
-    wscript.echo now() & ", CVS作成完了！！"
+    wscript.echo "終了！！"
 
 end function
-
 
 
 '月次実績・稼動準備金：「会計期」の設定
 function getColAValue(yyyymm)
-    Dim yyyy
-    Dim mm
-    Dim letval
+Dim yyyy
+Dim mm
+Dim letval
 
-    yyyy = left(yyyymm,4) 
-    mm = right(yyyymm,2)
+yyyy = left(yyyymm,4) 
+mm = right(yyyymm,2)
 
-    if mm >= 10 then
-        letval = yyyy - 1978 
-    else
-        letval = yyyy - 1979
-    end if
+if mm >= 10 then
+    letval = yyyy - 1978 
+else
+   letval = yyyy - 1979
+end if
 
-    getColAValue = letval
+getColAValue = letval
 
 end function
 
 
-'読み込む・出力ファイルの「月」の設定
+'出力ファイルの「月」の設定
 function getInfileMonth(yyyymm)
-    Dim mm
-    Dim retval
+Dim mm
+Dim retval
 
-    mm = right(yyyymm,2)
+mm = right(yyyymm,2)
 
-    if mm >= 10 then
-        retval = mm
-    else
-        retval = right(mm,1)
-    end if
+if mm >= 10 then
+    retval = mm
+else
+    retval = right(mm,1)
+end if
 
-    getInfileMonth = retval
+getInfileMonth = retval
 
 end function
 
 
 '出力ファイルの「実行日時」の設定
 function format(currenttime)
-    Dim retval
-    Dim lngyear
-    Dim lngmonth
-    Dim lngday
-    Dim lnghour
-    Dim lngminute
-    Dim lngsecond
+Dim retval
+Dim lngyear
+Dim lngmonth
+Dim lngday
+Dim lnghour
+Dim lngminute
+Dim lngsecond
 
-    lngyear = year(currenttime)
-    lngmonth = right("0" & month(currenttime),2)
-    lngday = right("0" & day(currenttime),2)
-    lnghour = right("0" & hour(currenttime),2)
-    lngminute = right("0" & minute(currenttime),2)
-    lngsecond = right("0" & second(currenttime),2)
+  lngyear = year(currenttime)
+  lngmonth = right("0" & month(currenttime),2)
+  lngday = right("0" & day(currenttime),2)
+  lnghour = right("0" & hour(currenttime),2)
+  lngminute = right("0" & minute(currenttime),2)
+  lngsecond = right("0" & second(currenttime),2)
 
-    retval = lngyear & lngmonth & lngday & lnghour & lngminute & lngsecond
+  retval = lngyear & lngmonth & lngday & lnghour & lngminute & lngsecond
 
-    format = retval
+  format = retval
 
 end function
 
 
 '月次実績：「計上月」の設定
 function getColEValue(wsD,ki)
-    Dim yyyy
-    Dim mm
-    Dim letval
+Dim yyyy
+Dim mm
+Dim letval
 
-    yyyy = ki + 1978
-    mm = replace(wsD,"月", "")
+yyyy = ki + 1978
+mm = replace(wsD,"月", "")
 
-    if mm >= 10  then
-        letval = yyyy & mm
-    else
-        letval = (yyyy + 1) & ("0" & mm)
-    end if
+if mm >= 10  then
+    letval = yyyy & mm
+else
+    letval = (yyyy + 1) & ("0" & mm)
+end if
 
-    getColEValue = letval
+getColEValue = letval
 
 end function
 
 
+
 '稼動準備金データの処理
 function operatingReserves(yyyymm, filename)
-    Dim fso
-    Dim path
-    Dim target2
-    Dim accountingPeriodVlue
-    Dim infilemonth
-    Dim file
-    Dim excelApp
-    Dim wb2
-    Dim ws2
-    Dim r
+Dim fso
+Dim path
+Dim target2
+Dim accountingPeriodVlue
+Dim infilemonth
+Dim file
+Dim excelApp
+Dim wb2
+Dim ws2
+Dim r
 
-    'ファイルシステムオブジェクト生成
-    set fso = createObject("Scripting.FileSystemObject")
 
-    '共通パスの取得
-    path = getEnv("BAT_ROOT_PATH")
+'ファイルシステムオブジェクト生成
+set fso = createObject("Scripting.FileSystemObject")
 
-    '出力ファイルへ追加
-    set file = fso.OpenTextFile(path & getEnv("OUTPUT_PATH") & filename, 8)
+'パスの取得
+path = getEnv("BAT_ROOT_PATH")
 
-    '会計期
-    accountingPeriodVlue = getColAValue(yyyymm)    
+'会計期
+accountingPeriodVlue = getColAValue(yyyymm)    
 
-    '読み込むファイルの月
-    infilemonth = getInfileMonth(yyyymm)             
+'読み込むファイルの月
+infilemonth = getInfileMonth(yyyymm)             
 
-    '読み込むファイルのパス　
-    target2 = path & getEnv("INPUT_PATH") & accountingPeriodVlue & "期\" & yyyymm & "\主管部門別稼動準備金額" & infilemonth & "月.xlsx" 
+'出力ファイルへ追加
+set file = fso.OpenTextFile(filename, 8)
+
+'読み込むファイルのパス　
+target2 = path & "\input\02.実績\" & accountingPeriodVlue & "期\" & yyyymm & "\主管部門別稼動準備金額" & infilemonth & "月.xlsx" 
         
     'ファイルの有無 主管部門稼動準備金データ
      if fso.fileexists(target2) then
@@ -286,9 +224,9 @@ function operatingReserves(yyyymm, filename)
         exit function
     end if
 
-    set ws2 = wb2.Worksheets("プロジェクト一覧表")
+set ws2 = wb2.Worksheets("プロジェクト一覧表")
 
-    r = 9
+r = 9
 
     do    
         '最終行の判定
@@ -309,7 +247,7 @@ function operatingReserves(yyyymm, filename)
             gross_profit_margin =  getColOValue(cost_total)                '粗利率
 
 
-            if fso.fileexists(path & getEnv("OUTPUT_PATH") & filename) then 
+            if fso.fileexists(filename) then 
 
                 'CSVに出力するデータ
                 file.writeline accountingPeriodVlue & ",""" & project_code & """,""" & ws2.cells(r,"B") & """,""-"",""" _
@@ -318,30 +256,30 @@ function operatingReserves(yyyymm, filename)
                     & "-"",""-"",""38300015"",""技術研修・稼動準備""" 
 
             else
-                wscript.echo "ファイルが存在しません."
+                wscript.echo "ファイルが存在しません"
                 exit function
 
             end if
 
-            r = r + 1
+        r = r + 1
     loop
 
-    wb2.close false
-    file.close 
+wb2.close false
+file.close 
 
 end function
 
 
 '指定年月をループする処理
 function outFileNumber(yyyymm, filename)
-    Dim yyyy
-    Dim mm
-    Dim ki
-    Dim arrMonth
-    Dim i
+Dim yyyy
+Dim mm
+Dim ki
+Dim arrMonth
+Dim i
 
-    yyyy = left(yyyymm,4)
-    mm = right(yyyymm,2)
+yyyy = left(yyyymm,4)
+mm = right(yyyymm,2)
 
     if mm >= 10 then
         ki = yyyy - 1978
@@ -349,10 +287,10 @@ function outFileNumber(yyyymm, filename)
         ki = yyyy - 1979
     end if
 
-    yyyy = 1978 + ki
+yyyy = 1978 + ki
 
-    '指定会計期の開始年月から終了年月の配列を作成
-    arrMonth = Array(yyyy & "10", yyyy & "11", yyyy & "12", (yyyy+1) & "01", (yyyy+1) & "02", (yyyy+1) & "03", (yyyy+1) & "04", (yyyy+1) & "05", (yyyy+1) & "06", (yyyy+1) & "07", (yyyy+1) & "08", (yyyy+1) & "09")
+'指定会計期の開始年月から終了年月の配列を作成
+arrMonth = Array(yyyy & "10", yyyy & "11", yyyy & "12", (yyyy+1) & "01", (yyyy+1) & "02", (yyyy+1) & "03", (yyyy+1) & "04", (yyyy+1) & "05", (yyyy+1) & "06", (yyyy+1) & "07", (yyyy+1) & "08", (yyyy+1) & "09")
 
     '配列のリストを指定年月までループで回す
     for i = 0 To UBound(arrMonth)
@@ -366,7 +304,7 @@ end function
 
 '稼動準備金：「事業部」の設定
 function getColFValue(projectcode)
-    Dim retval
+ Dim retval
 
     select case projectcode
         case "38300015-00": retval = "ZZ"
@@ -387,14 +325,13 @@ function getColFValue(projectcode)
         case else: retval = "XX"
     end select
     
-    getColFValue= retval
+     getColFValue= retval
 
 end function
 
-
 '稼動準備金：「主管部門」の設定
 function getColGValue(projectcode)
-    Dim retval
+ Dim retval
 
     select case projectcode
         case "38300015-00": retval = "ZZ"
@@ -419,10 +356,9 @@ function getColGValue(projectcode)
 
 end function
 
-
 '稼動準備金：「粗利率」の設定
 function getColOValue(costtotal)
-    Dim letval
+Dim letval
 
     if costtotal >= 0 then
         letval = -100
@@ -430,6 +366,83 @@ function getColOValue(costtotal)
         letval = 0
     end if
 
-    getColOValue = letval
+getColOValue = letval
 
 end function
+
+' 
+' 概要：CSV Load 用SQLファイル生成
+' 引数：filename/CSVファイル名
+' 戻値：boolean/True:正常、False:異常
+' 備考：
+'
+function createSalesAchievementLoadDataFile(filename, ki)
+  Dim fso
+  Dim file
+  Dim sql_file
+  Dim data_file
+
+  'ファイルシステムオブジェクト生成
+  set fso = createObject("Scripting.FileSystemObject")
+
+  '作成するSQLファイル名を生成
+  sql_file = getEnv("BAT_ROOT_PATH") & getEnv("SQL_PATH") & getEnv("SQL_FILE_NAME")
+
+  'インポートするCSVファイル名を生成
+  data_file = getEnv("CONTAINER_LOAD_FILE_PATH") & filename
+
+  '出力ファイル作成
+  set file = fso.createTextFile(sql_file, true)
+
+  'LOAD DATA 文の出力
+  file.writeline "set character_set_database=cp932;"
+  file.writeline "delete from sales_achievement where accounting_period = " & ki & ";"
+  file.writeline "load data"
+  file.writeline "infile '" & data_file & "'"
+  file.writeline "into table sales_achievement"
+  file.writeline "fields terminated by ','"
+  file.writeline "enclosed by '""'"
+  file.writeline "lines terminated by '\r\n'"
+  file.writeline "ignore 1 rows"
+  file.writeline "(@1,@2,@3,@4,@5,@6,@7,@8,@9,@10,@11,@12,@13,@14,@15,@16,@17,@18,@19,@20)"
+  file.writeline "set created = now()"
+  file.writeline ", updated = now()"
+  file.writeline ", accounting_period=@1"
+  file.writeline ", project_code=@2"
+  file.writeline ", project_name=@3"
+  file.writeline ", client_name=@4"
+  file.writeline ", accounting_month=@5"
+  file.writeline ", sales_department=@6"
+  file.writeline ", business_sector=@7"
+  file.writeline ", supervising_department=@8"
+  file.writeline ", amount_of_sales=@9"
+  file.writeline ", material_cost=@10"
+  file.writeline ", labor_cost=@11"
+  file.writeline ", outsourcing_cost=@12"
+  file.writeline ", expenses=@13"
+  file.writeline ", cost_total=@14"
+  file.writeline ", gross_profit=@15"
+  file.writeline ", gross_profit_margin=@16"
+  file.writeline ", type_of_contract=@17"
+  file.writeline ", kinds=@18"
+  file.writeline ", project_parent_code=@19"
+  file.writeline ", project_parent_name=@20;"
+  file.close()
+end Function
+
+' 
+' 概要：環境変数値を取得
+' 引数：env_name/環境変数名(%なし)
+' 戻値：string/環境変数値
+' 備考：
+'
+function getEnv(env_name)
+  Dim objShell
+  
+  'シェルオブジェクト作成
+  Set objShell = CreateObject("WScript.Shell")
+  
+  '環境変数取得
+  getEnv = objShell.ExpandEnvironmentStrings("%" & env_name & "%")
+end Function
+

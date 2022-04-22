@@ -113,7 +113,7 @@ try:
         supervising_department.append(syukann)
         client_name.append(kokyaku)
         project_name.append(pj)
-        operetor.append(sagyou)
+        operator.append(sagyou)
 
     def mysql_connect():
         """
@@ -129,7 +129,8 @@ try:
             port=int(config.MYSQL_PORT),
             passwd=config.MYSQL_PW,
             host=config.MYSQL_HOST,
-            db=config.MYSQL_DB)
+            db=config.MYSQL_DB,
+            local_infile=True)
 
         cur = conn.cursor() # カーソルを取得する
         return (conn, cur)
@@ -210,9 +211,53 @@ try:
                 conn.commit()
         except MySQLdb.Error as e:
             print('MySQLdb.Error: ', e)
-
         cur.close
-        conn.close         
+        conn.close
+
+    def csv_load(output_name):
+        """
+        CSVへのLOAD関数
+
+        Parameters
+        ----------
+        output_name : str
+
+        """
+        conn, cur = mysql_connect() # MySQL接続
+        try:
+            sql = ('''LOAD DATA LOCAL INFILE %s
+                INTO TABLE sales_budget
+                FIELDS TERMINATED BY ','
+                ENCLOSED BY '"'
+                LINES TERMINATED BY '\r\n'
+                IGNORE 1 LINES
+                (@1, @2, @3, @4, @5, @6, @7, @8, @9, @10, @11, @12, @13, @14, @15, @16)
+                SET
+                updated = now(),
+                created = now(),
+                accounting_period = @1,
+                version = @2,
+                sales_department = @3,
+                classification = @4,
+                sales_representative = @5,
+                supervising_department = @6,
+                client_name = @7,
+                project_name = @8,
+                operator = @9,
+                accounting_month = @10,
+                sales_budget = @11,
+                sales_expected = @12,
+                sales_achievement = @13,
+                half_period = @14,
+                quarter = @15,
+                accuracy = @16''')
+            cur.execute(sql, (output_name,))
+            conn.commit()
+        except MySQLdb.Error as e:
+            print('MySQLdb.Error: ', e)
+        cur.close
+        conn.close
+
 
     ######################################
     # メイン処理                          #
@@ -220,7 +265,7 @@ try:
 
     # 読み込み 
     args = sys.argv
-    TargetPath = config.YOSAN_PATH + args[1]    # 読み込むExcelファイル名をパラメータから取得
+    TargetPath = config.YOSAN_PATH + args[1] + '期売上予算_営業資料.xlsm'   # 読み込むExcelファイル名をパラメータから取得
     wb = openpyxl.load_workbook(TargetPath)
     sheet_names = wb.sheetnames
 
@@ -233,19 +278,17 @@ try:
     supervising_department = [] # 主管部門
     client_name = []            # 顧客
     project_name = []           # プロジェクト名
-    operetor = []               # 作業員
-    year_month = []             # 年月
-    budget = []                 # 予算
-    expected = []               # 見込み
-    achievement = []            # 実績
+    operator = []               # 作業員
+    accounting_month = []       # 年月
+    sales_budget = []           # 予算
+    sales_expected = []         # 見込み
+    sales_achievement = []      # 実績
     half_period = []            # 半期
     quarter = []                # 四半期
     accuracy = []               # 確度
 
     # 会計期
-    target = '期'
-    target_idx = TargetPath.find(target)  # '期'のインデックスを検索
-    kaikeiki = int((TargetPath[:target_idx])[-2:])  # スライスでインデックス以前の数字を抽出
+    kaikeiki = int(args[1])  # パラメータから会計期を取得
 
 
     # バージョン
@@ -335,10 +378,10 @@ try:
                         version.append(ver)                     # バージョン
                         sales_department.append(eigyou_bumon)   # 営業部門
                         classification.append(bunrui)           # 分類
-                        year_month.append(ym)       # 年月
-                        budget.append(yosan)        # 予算
-                        expected.append(mikomi)     # 見込
-                        achievement.append(zisseki) # 実績
+                        accounting_month.append(ym)       # 年月
+                        sales_budget.append(yosan)        # 予算
+                        sales_expected.append(mikomi)     # 見込
+                        sales_achievement.append(zisseki) # 実績
                         half_period.append(hanki)   # 半期
                         quarter.append(shihanki)    # 四半期
                         accuracy.append(kakudo)     # 確度
@@ -347,22 +390,22 @@ try:
 
 
     # 出力用辞書型
-    dict1 = { '会計期': accounting_period,
-            'バージョン': version, 
-            '営業部門': sales_department,
-            '分類': classification,
-            '営業担当': sales_representative,
-            '主管部門': supervising_department,
-            '顧客': client_name,
-            'プロジェクト名': project_name,
-            '作業員': operetor,
-            '年月': year_month,
-            '予算': budget,
-            '見込': expected,
-            '実績': achievement,
-            '半期': half_period,
-            '四半期': quarter,
-            '確度': accuracy
+    dict1 = { 'accounting_period': accounting_period,
+            'version': version, 
+            'sales_department': sales_department,
+            'classification': classification,
+            'sales_representative': sales_representative,
+            'supervising_department': supervising_department,
+            'client_name': client_name,
+            'project_name': project_name,
+            'operator': operator,
+            'accounting_month': accounting_month,
+            'sales_budget': sales_budget,
+            'sales_expected': sales_expected,
+            'sales_achievement': sales_achievement,
+            'half_period': half_period,
+            'quarter': quarter,
+            'accuracy': accuracy
             }
 
     #dataframe作成
@@ -372,24 +415,23 @@ try:
     t_delta = datetime.timedelta(hours=9)
     JST = datetime.timezone(t_delta, 'JST')
     now = datetime.datetime.now(JST)
-    d = now.strftime('%Y%m%d%H%M%S')
-
+    d = now.strftime('%Y%m') # yyyymm式
 
     # パラメータ
-    if len(args) >= 5:
+    if len(args) >= 6:
         # 文字コード
-        if args[3] == ' ':
+        if args[4] == ' ':
             my_encoding = 'utf_8_sig'
         else:
-            my_encoding = args[3]
+            my_encoding = args[4]
         # 区切り文字
-        my_sep = args[4]
-    elif len(args) == 4:
+        my_sep = args[5]
+    elif len(args) == 5:
         # 文字コード
-        if args[3] == ' ':
+        if args[4] == ' ':
             my_encoding = 'utf_8_sig'
         else:
-            my_encoding = args[3]
+            my_encoding = args[4]
         # 区切り文字
         my_sep = ','
     else:
@@ -399,10 +441,18 @@ try:
         my_sep = ','
 
     # 出力ファイル名
-    output_name = config.OUTPUT_PATH + str(kaikeiki) + '期_売上予算_'  + d 
+    output_name = config.OUTPUT_PATH + str(kaikeiki) + '_' + str(ver) + '_' + d + '_sales_budget.csv'
 
     # CSV形式で出力
-    df.to_csv(output_name + '.csv', sep=my_sep, encoding=my_encoding, index=False, quoting=csv.QUOTE_NONNUMERIC)
+    df.to_csv(output_name, sep=my_sep, encoding=my_encoding, index=False, quoting=csv.QUOTE_NONNUMERIC)
+
+    # CSVからLOAD
+    if int(args[3]) == 1:    # LOADするとき
+        csv_load(output_name)
+    elif int(args[3]) == 2:  # LOADしないとき
+        pass
+    else:
+        raise ParamError
 
 except(ImportError, ModuleNotFoundError) as e:
     print('Import Error!:', e)
