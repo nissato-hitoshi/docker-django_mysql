@@ -1,4 +1,3 @@
-
 class ParamError(Exception):
     pass
 
