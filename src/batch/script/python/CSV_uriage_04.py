@@ -417,7 +417,6 @@ try:
     now = datetime.datetime.now(JST)
     d = now.strftime('%Y%m') # yyyymm式
 
-
     # パラメータ
     if len(args) >= 6:
         # 文字コード
