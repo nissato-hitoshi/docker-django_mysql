@@ -2,14 +2,12 @@ SELECT
   A.client_name
   ,IFNULL(B.first_half_sales_budget_total,0) first_half_sales_budget_total
   ,IFNULL(C.second_half_sales_budget_total,0) second_half_sales_budget_total
-  ,(
-  IFNULL(B.first_half_sales_budget_total,0) + IFNULL(C.second_half_sales_budget_total,0) 
-  ) full_year_budget
+  ,A.full_year_sales_budget
 FROM
   (
     SELECT
       client_name
-      ,sum(sales_budget) sales_budget_total
+      ,sum(sales_budget) full_year_sales_budget
     FROM
       sales_budget
     GROUP BY
@@ -36,4 +34,6 @@ FROM
       half_period = "2:下期"
     GROUP BY
       client_name
-  ) C ON A.client_name = C.client_name;
+  ) C ON A.client_name = C.client_name
+ORDER BY
+  A.full_year_sales_budget desc;
