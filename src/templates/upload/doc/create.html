@@ -1,0 +1,34 @@
+{% extends '../../base.html' %}
+{% load static %}
+{% load django_bootstrap5 %}
+{% load bootstrap_icons %}
+
+{% block head_title %}ファイルアップロード{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4 small">
+    <div class="row">
+        <div class="col-2"></div>
+        <div class="col">
+            <form method="POST" enctype="multipart/form-data">
+                <div class="row mb-3">
+                    <div class="col-6">
+                        <h4>ファイルアップロード</h4>
+                    </div>
+                    <div class="col-6 text-end">
+                    </div>
+                </div>
+                {% csrf_token %}
+                {% bootstrap_form form layout='floating' alert_error_type='fields' %}
+                <button type="submit" class="btn btn-primary btn-md">
+                    <i class="fa-solid fa-upload"></i> アップロード
+                </button>
+                <a href="{% url 'upload:doc.index' %}" class="btn btn-secondary btn-md">
+                    <i class="fa-solid fa-ban"></i> キャンセル
+                </a>
+            </form>
+        </div>
+        <div class="col-2"></div>
+    </div>
+</div>
+{% endblock %}

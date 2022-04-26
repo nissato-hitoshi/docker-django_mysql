@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     'allauth.socialaccount',        # 追加
     'rest_framework',               # 追加
     'app',                          # 追加アプリケーション
+    'upload',                       # 追加アプリケーション
 ]
 
 MIDDLEWARE = [

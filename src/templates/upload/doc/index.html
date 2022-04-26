@@ -1,0 +1,66 @@
+{% extends '../../base.html' %}
+{% load static %}
+{% load django_bootstrap5 %}
+{% load bootstrap_icons %}
+
+{% block head_title %}アップロードファイル一覧{% endblock %}
+
+{% block content %}
+<div class="container-fluid p-4 small">
+    <div class="row">
+        <div class="col-6">
+            <h4 class="mb-3">
+                <i class="fa-solid fa-table-list"></i> アップロードファイル一覧
+            </h4>
+        </div>
+        <div class="col-6 text-end">
+            <a class="btn btn-outline-secondary btn-sm mb-3 mx-2" data-bs-toggle="modal" href="#search_form" role="button">
+                <i class="fa-solid fa-filter"></i>
+            </a>
+            <a href="{% url 'upload:doc.create' %}" class="btn btn-primary btn-sm mb-3">
+                <i class="fa-solid fa-upload"></i> 新規アップロード
+            </a>
+        </div>
+    </div>
+    <div class="row">
+        {% if docs|length == 0 %}
+        <div class="col-8 offset-2">
+            <div class="alert alert-warning" role="alert">
+                検索結果が存在しません。
+            </div>
+        </div>
+        {% else %}
+        <table class="table table-hover table-striped table-bordered table-sm small">
+            <thead class="table-light">
+                <tr>
+                    <th scope="col">説明</th>
+                    <th scope="col">アップロード日時</th>
+                    <th scope="col">アップロードファイル</th>
+                    <th scope="col">　</th>
+                </tr>
+            </thead>
+            <tbody class="align-middle">
+            {% for doc in docs %}
+                <tr>
+                    <td>{{ doc.description }}</td>
+                    <td>{{ doc.uploaded_at }}</td>
+                    <td>{{ doc.document }}</td>
+                    <td class="text-center">
+                        <a href="{% url 'upload:doc.update' doc.pk %}" class="btn btn-sm">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                        </a>
+                        <a href="{% url 'upload:doc.delete' doc.pk %}" class="btn btn-sm">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </a>
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        <div class="pagination justify-content-center">
+            {% bootstrap_pagination page_obj %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
