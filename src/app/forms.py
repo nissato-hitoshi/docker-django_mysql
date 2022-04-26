@@ -2,6 +2,17 @@ from django import forms
 
 from .models import SalesBudget, VersionControl, SalesAchievement
 
+class SearchBudgetForm(forms.Form):
+    search_accounting_period = forms.IntegerField(
+        label='会計期', initial='43', required=True, min_value=1, max_value=99
+    )
+    search_client_name = forms.CharField(
+        label='取引先', required=False
+    )
+    search_accounting_month = forms.IntegerField(
+        label='年月', required=False, min_value=200001, max_value=210012
+    )
+
 class SalesAchievementForm(forms.ModelForm):
     class Meta:
         model = SalesAchievement
