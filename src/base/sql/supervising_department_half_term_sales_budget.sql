@@ -28,4 +28,6 @@ FROM
       half_period = "2:下期"
     GROUP BY
       supervising_department
-  ) B ON A.supervising_department = B.supervising_department;
+  ) B ON A.supervising_department = B.supervising_department
+ORDER BY
+  full_year_sales_budget_total desc;
