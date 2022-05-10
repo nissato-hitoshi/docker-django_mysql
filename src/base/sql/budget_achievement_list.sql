@@ -1,4 +1,3 @@
-
 SELECT
     A.accounting_period
     ,A.accounting_month
@@ -14,8 +13,6 @@ FROM
             ,sum(sales_budget) sales_budget_total
         FROM
             sales_budget
-        WHERE
-            accounting_period = 43 
         GROUP BY
             accounting_period
             ,accounting_month
@@ -30,8 +27,6 @@ FROM
             ,sum(amount_of_sales) amount_of_sales_total
         FROM
             sales_achievement
-        WHERE
-            accounting_period = 43 
         GROUP BY
             accounting_period
             ,accounting_month
@@ -39,4 +34,6 @@ FROM
 
     ON
         A.accounting_period = B.accounting_period AND
-        A.accounting_month = B.accounting_month;
+        A.accounting_month = B.accounting_month
+    WHERE
+        A.accounting_period = 43;
