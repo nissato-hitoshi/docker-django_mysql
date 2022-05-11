@@ -7,6 +7,23 @@ from lib.common import AppUtil
 class HomeView(LoginRequiredMixin, TemplateView):
     template_name = 'home.html'
 
+    # パラメータによってテンプレートを変更する
+    def get_template_names(self):
+
+        # アプリケーション名取得
+        if "app_name" in self.request.GET:
+            app_name = self.request.GET.get("app_name")
+        else:
+            app_name = "base"
+
+        # テンプレート名取得
+        if "template_name" in self.request.GET:
+            template_name = app_name + "/" + self.request.GET.get("template_name") + ".html"
+        else:
+            template_name = "home.html"
+ 
+        return [template_name]
+
     @staticmethod
     def dictfetchall(cursor):
         columns = [col[0] for col in cursor.description]
@@ -19,18 +36,24 @@ class HomeView(LoginRequiredMixin, TemplateView):
     def get_context_data(self,**kwargs):
         context = super().get_context_data(**kwargs)
 
-        # 売上予算を主管部門別に集計
+        # アプリケーション名取得
+        if "app_name" in self.request.GET:
+            app_name = self.request.GET.get("app_name")
+        else:
+            app_name = "base"
+
+        # テンプレート名取得
+        if "template_name" in self.request.GET:
+            template_name = self.request.GET.get("template_name")
+        else:
+            template_name = "home"
+
+        # パラメータで指定されたSQLを実行し結果を取得する
         with connection.cursor() as cursor:
-            sql = AppUtil.get_sql('base', 'home.001')
+            sql = AppUtil.get_sql(app_name, template_name)
             cursor.execute(sql)
             items = HomeView.dictfetchall(cursor)
+ 
         context["items"] = items
 
-        # 売上予算・実績を会計期毎に集計
-        with connection.cursor() as cursor:
-            sql = AppUtil.get_sql('base', 'home.002')
-            cursor.execute(sql)
-            total = HomeView.dictfetchall(cursor)
-        context["total"] = total
-        
         return context

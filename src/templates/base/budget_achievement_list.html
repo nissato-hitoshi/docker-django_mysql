@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends '../base.html' %}
 {% load static %}
 {% load django_bootstrap5 %}
 {% load bootstrap_icons %}
@@ -17,6 +17,7 @@
         <thead class="table-light text-center">
           <tr>
             <th scope="col">会計期</th>
+            <th scope="col">年月</th>
             <th scope="col">予算</th>
             <th scope="col">実績</th>
             <th scope="col">予実差</th>
@@ -26,12 +27,13 @@
         {% for item in items %}
           <tr>
             <td class="text-center">{{ item.accounting_period }}</td>
-            <td class="text-end">{{ item.budget_total | intcomma }}</td>
-            <td class="text-end">{{ item.achievement_total | intcomma }}</td>
-            {% if item.diff_total < 0 %}
-            <td class="text-end text-danger">{{ item.diff_total | intcomma }}</td>
+            <td class="text-center">{{ item.accounting_month }}</td>
+            <td class="text-end">{{ item.sales_budget_total | intcomma }}</td>
+            <td class="text-end">{{ item.amount_of_sales_total | intcomma }}</td>
+            {% if item.difference_total < 0 %}
+            <td class="text-end text-danger">{{ item.difference_total | intcomma }}</td>
             {% else %}
-            <td class="text-end">{{ item.diff_total | intcomma }}</td>
+            <td class="text-end">{{ item.difference_total | intcomma }}</td>
             {% endif %}
           </tr>
         {% endfor %}
