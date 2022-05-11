@@ -15,7 +15,7 @@
     <link href="{% static 'assets/css/styles.css' %}" rel="stylesheet" />
     <script src="https://use.fontawesome.com/releases/v6.1.0/js/all.js" crossorigin="anonymous"></script>
 </head>
-<body class="sb-nav-fixed">
+<body class="sb-nav-fixed small">
     <nav class="sb-topnav navbar navbar-expand navbar-dark bg-dark">
         <!-- Navbar Brand-->
         <a class="navbar-brand ps-3" href="{% url 'home' %}">Sample Site</a>
@@ -78,6 +78,20 @@
                         <div class="collapse" id="collapseUpload" aria-labelledby="headingOne" data-bs-parent="#sidenavAccordion">
                             <nav class="sb-sidenav-menu-nested nav">
                                 <a class="nav-link" href="{% url 'upload:doc.index' %}">アップロード一覧</a>
+                            </nav>
+                        </div>
+                        <a class="nav-link collapsed" href="#" data-bs-toggle="collapse" data-bs-target="#summary_sheets" aria-expanded="false" aria-controls="summary_sheets">
+                            <div class="sb-nav-link-icon"><i class="fas fa-columns"></i></div>
+                            集計一覧
+                            <div class="sb-sidenav-collapse-arrow"><i class="fas fa-angle-down"></i></div>
+                        </a>
+                        <div class="collapse" id="summary_sheets" aria-labelledby="headingOne" data-bs-parent="#sidenavAccordion">
+                            <nav class="sb-sidenav-menu-nested nav">
+                                
+                                <a class="nav-link" href="{% url 'home' %}?template_name=budget_achievement_list">予算・実績一覧</a>
+                                <a class="nav-link" href="{% url 'home' %}?template_name=supervising_department_half_term_sales_budget">事業部別・予算一覧</a>
+                                <a class="nav-link" href="{% url 'home' %}?template_name=sales_department_half_term_sales_budget">営業部門別・予算一覧</a>
+                                <a class="nav-link" href="{% url 'home' %}?template_name=client_name_half_term_sales_budget">取引先別・予算一覧</a>
                             </nav>
                         </div>
                     </div>

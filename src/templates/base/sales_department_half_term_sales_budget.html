@@ -1,0 +1,38 @@
+{% extends '../base.html' %}
+{% load static %}
+{% load django_bootstrap5 %}
+{% load bootstrap_icons %}
+{% load i18n %}
+{% load humanize %}
+
+{% block head_title %}営業部門別・予算一覧{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-4">
+  <div class="row">
+      <h4 class="mb-3 mt-3">
+        <i class="fa-solid fa-table-list"></i> 営業部門別・予算一覧
+      </h4>
+      <table class="table table-hover table-striped table-bordered table-sm small">
+        <thead class="table-light text-center">
+          <tr>
+            <th scope="col"営業部門</th>
+            <th scope="col">上期予算</th>
+            <th scope="col">下期予算</th>
+            <th scope="col">通期予算</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for item in items %}
+          <tr>
+            <td class="text-center">{{ item.sales_department }}</td>
+            <td class="text-end">{{ item.first_half_sales_budget_total | intcomma }}</td>
+            <td class="text-end">{{ item.second_half_sales_budget_total | intcomma }}</td>
+            <td class="text-end">{{ item.full_year_sales_budget_total | intcomma }}</td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+  </div>
+</div>
+{% endblock %}
