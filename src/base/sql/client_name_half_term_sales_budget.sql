@@ -1,39 +1,21 @@
 SELECT
-  A.client_name
-  ,IFNULL(B.first_half_sales_budget_total,0) first_half_sales_budget_total
-  ,IFNULL(C.second_half_sales_budget_total,0) second_half_sales_budget_total
-  ,A.full_year_sales_budget
+  accounting_period AS 会計期
+  ,client_name AS 取引先
+  ,SUM(
+      CASE WHEN half_period = "1:上期" THEN sales_budget
+      ELSE 0 END
+  ) AS 上期
+  ,SUM(
+      CASE  WHEN half_period = "2:下期" THEN sales_budget
+      ELSE 0 END
+  ) AS 下期
+  ,SUM(sales_budget) AS 合計
 FROM
-  (
-    SELECT
-      client_name
-      ,sum(sales_budget) full_year_sales_budget
-    FROM
-      sales_budget
-    GROUP BY
-      client_name
-  ) A
-  LEFT JOIN (
-    SELECT
-      client_name
-      ,sum(sales_budget) first_half_sales_budget_total
-    FROM
-      sales_budget
-    WHERE
-      half_period = "1:上期"
-    GROUP BY
-      client_name
-  ) B ON A.client_name = B.client_name
-  LEFT JOIN (
-    SELECT
-      client_name
-      ,sum(sales_budget) second_half_sales_budget_total
-    FROM
-      sales_budget
-    WHERE
-      half_period = "2:下期"
-    GROUP BY
-      client_name
-  ) C ON A.client_name = C.client_name
+  sales_budget
+WHERE
+  accounting_period = 43
+GROUP BY
+  accounting_period
+  ,client_name
 ORDER BY
-  A.full_year_sales_budget desc;
+  合計 DESC;
