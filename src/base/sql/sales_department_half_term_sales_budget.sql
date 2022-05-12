@@ -1,34 +1,21 @@
 SELECT
-  A.sales_department
-  ,A.first_half_sales_budget_total
-  ,B.second_half_sales_budget_total
-  ,
-  (
-    A.first_half_sales_budget_total + B.second_half_sales_budget_total
-  ) full_year_sales_budget_total
+  accounting_period AS 会計期
+  ,sales_department AS 営業部
+  ,SUM(
+      CASE WHEN half_period = "1:上期" THEN sales_budget
+      ELSE 0 END
+  ) AS 上期
+  ,SUM(
+      CASE WHEN half_period = "2:下期" THEN sales_budget
+      ELSE 0 END
+  ) AS 下期
+  ,SUM(sales_budget) AS 合計
 FROM
-  (
-    SELECT
-      sales_department
-      ,sum(sales_budget) first_half_sales_budget_total
-    FROM
-      sales_budget
-    WHERE
-      half_period = "1:上期"
-    GROUP BY
-      sales_department
-  ) A
-  JOIN (
-    SELECT
-      sales_department
-      ,sum(sales_budget) second_half_sales_budget_total
-    FROM
-      sales_budget
-    WHERE
-      half_period = "2:下期"
-    GROUP BY
-      sales_department
-  ) B ON A.sales_department = B.sales_department
+  sales_budget
+WHERE
+  accounting_period = 43
+GROUP BY
+  accounting_period
+  ,sales_department
 ORDER BY
-  full_year_sales_budget_total desc;
-  
+  合計 DESC;
